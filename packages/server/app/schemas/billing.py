@@ -47,3 +47,15 @@ class TopUpRequest(BaseModel):
 
 class TopUpResponse(BaseModel):
     checkout_url: str
+
+
+class SetupIntentResponse(BaseModel):
+    client_secret: str
+
+
+class PaymentMethodResponse(BaseModel):
+    id: str
+    card_brand: str
+    card_last4: str
+    card_exp_month: int
+    card_exp_year: int
