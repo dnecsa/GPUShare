@@ -5,3 +5,4 @@ CLAUDE.md
 docs/blog-post-*
 packages/server/app/schemas/__pycache__/
 packages/server/app/__pycache__/
+packages/frontend/node_modules/
