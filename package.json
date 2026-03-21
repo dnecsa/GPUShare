@@ -1,0 +1,53 @@
+{
+  "name": "gpushare",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GPU compute sharing platform — AI inference and 3D rendering at electricity cost",
+  "scripts": {
+    "dev": "pnpm run --parallel dev:frontend dev:server",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:server": "docker compose up",
+    "build": "pnpm --filter frontend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:restart": "docker compose restart",
+    "docker:rebuild": "docker compose up -d --build",
+    "server:logs": "docker compose logs -f fastapi",
+    "server:shell": "docker compose exec fastapi bash",
+    "db:migrate": "docker compose exec fastapi alembic upgrade head",
+    "db:revision": "docker compose exec fastapi alembic revision --autogenerate -m",
+    "docs": "echo 'OpenAPI docs available at http://localhost:8000/docs'",
+    "docs:open": "open http://localhost:8000/docs",
+    "swagger": "open http://localhost:8000/docs",
+    "redoc": "open http://localhost:8000/redoc",
+    "openapi": "curl http://localhost:8000/openapi.json > openapi.json && echo 'OpenAPI spec saved to openapi.json'",
+    "test:frontend": "pnpm --filter frontend test",
+    "lint:frontend": "pnpm --filter frontend lint",
+    "format": "pnpm --filter frontend format",
+    "clean": "pnpm --filter frontend clean && docker compose down -v",
+    "install:all": "pnpm install && pnpm --filter frontend install"
+  },
+  "workspaces": [
+    "packages/frontend",
+    "packages/shared"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.31.0",
+  "keywords": [
+    "gpu",
+    "compute",
+    "ai",
+    "inference",
+    "rendering",
+    "blender",
+    "openai",
+    "stripe"
+  ],
+  "author": "GPUShare",
+  "license": "MIT"
+}

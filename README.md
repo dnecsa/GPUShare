@@ -39,12 +39,72 @@ Everything else (Ollama, Cloudflare Tunnel) is installed automatically by the se
 ```bash
 git clone https://github.com/yourname/gpu-node.git
 cd gpu-node
+pnpm install      # Install all dependencies
+pnpm dev          # Start frontend and backend together
+```
+
+Or use the automated setup:
+
+```bash
 ./setup.sh        # macOS / Linux
 # or
 .\setup.ps1       # Windows (PowerShell)
 ```
 
+## Available Scripts
+
+All scripts can be run from the root directory using `pnpm <script>`:
+
+### Development
+
+- `pnpm dev` - Start both frontend and backend in parallel
+- `pnpm dev:frontend` - Start frontend dev server only (Vite)
+- `pnpm dev:server` - Start backend with Docker Compose
+
+### Building
+
+- `pnpm build` - Build frontend for production
+- `pnpm build:frontend` - Same as above
+
+### Docker
+
+- `pnpm docker:up` - Start all Docker services in background
+- `pnpm docker:down` - Stop all Docker services
+- `pnpm docker:logs` - Follow logs from all services
+- `pnpm docker:restart` - Restart all services
+- `pnpm docker:rebuild` - Rebuild and restart all services
+
+### Backend/Server
+
+- `pnpm server:logs` - Follow FastAPI server logs
+- `pnpm server:shell` - Open bash shell in FastAPI container
+
+### Database
+
+- `pnpm db:migrate` - Run database migrations
+- `pnpm db:revision` - Create new migration (requires message)
+
+### API Documentation
+
+- `pnpm docs` - Show OpenAPI docs URL
+- `pnpm docs:open` - Open Swagger UI in browser
+- `pnpm swagger` - Open Swagger UI in browser
+- `pnpm redoc` - Open ReDoc in browser
+- `pnpm openapi` - Download OpenAPI spec to `openapi.json`
+
+### Testing & Linting
+
+- `pnpm test:frontend` - Run frontend tests
+- `pnpm lint:frontend` - Lint frontend code
+- `pnpm format` - Format frontend code
+
+### Utilities
+
+- `pnpm clean` - Clean all build artifacts and Docker volumes
+- `pnpm install:all` - Install dependencies for all packages
+
 The setup script will:
+
 1. Install Ollama and pull a model
 2. Ask for your database URL (with instructions for free Supabase/Neon setup)
 3. Configure your node (electricity rate, name, optional services)
