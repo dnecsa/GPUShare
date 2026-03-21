@@ -1,0 +1,60 @@
+services:
+  fastapi:
+    build:
+      context: ./packages/server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - ollama
+    volumes:
+      - render-tmp:/tmp/renders
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  render-worker:
+    build:
+      context: ./packages/server
+      dockerfile: Dockerfile
+    command: python -m app.workers.render_worker
+    env_file: .env
+    depends_on:
+      - fastapi
+    volumes:
+      - render-tmp:/tmp/renders
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - fastapi
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
+  render-tmp:
