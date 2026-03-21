@@ -17,14 +17,16 @@ class Settings(BaseSettings):
     # ── Required ─────────────────────────────────────────────────────────
     DATABASE_URL: str
     JWT_SECRET: str
-    STRIPE_SECRET_KEY: str
-    STRIPE_WEBHOOK_SECRET: str
-    CLOUDFLARE_R2_ACCOUNT_ID: str
-    CLOUDFLARE_R2_ACCESS_KEY_ID: str
-    CLOUDFLARE_R2_SECRET_ACCESS_KEY: str
+    ADMIN_EMAIL: str = "admin@localhost"
+
+    # ── Optional services (set to empty string to disable) ────────────
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    CLOUDFLARE_R2_ACCOUNT_ID: str = ""
+    CLOUDFLARE_R2_ACCESS_KEY_ID: str = ""
+    CLOUDFLARE_R2_SECRET_ACCESS_KEY: str = ""
     CLOUDFLARE_R2_BUCKET: str = "gpu-node-files"
-    RESEND_API_KEY: str
-    ADMIN_EMAIL: str
+    RESEND_API_KEY: str = ""
 
     # ── Services & compute ───────────────────────────────────────────────
     SERVICES_ENABLED: str = "inference,render"

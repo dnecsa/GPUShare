@@ -26,14 +26,18 @@ services:
       - fastapi
     restart: unless-stopped
 
+  # Cloudflare Tunnel — two modes:
+  #   With TUNNEL_TOKEN set in .env: uses your configured tunnel + domain
+  #   Without TUNNEL_TOKEN: run `cloudflared tunnel --url http://localhost:8000`
+  #     separately to get a free trycloudflare.com URL (no account needed)
   cloudflared:
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run
-    environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     depends_on:
       - fastapi
     restart: unless-stopped
+    profiles:
+      - tunnel
 
 volumes:
   render-tmp:

@@ -29,30 +29,48 @@ The frontend and database stay reachable even when your PC is off. Users can che
 
 ## Prerequisites
 
-- **Docker + Docker Compose** (with NVIDIA Container Toolkit)
-- **A Cloudflare account** (free) with a domain you control
-- **A Neon or Supabase account** (free tier is fine)
-- **A Stripe account** for billing
-- **A Resend account** for transactional email
+- **Docker + Docker Compose**
+- **A free Postgres database** — [Supabase](https://supabase.com) or [Neon](https://neon.tech) (free tier is fine)
+
+Everything else (Ollama, Cloudflare Tunnel) is installed automatically by the setup script. Stripe, R2, and Resend are optional and can be added later.
 
 ## Quick start
-
-### 1. Clone and configure
 
 ```bash
 git clone https://github.com/yourname/gpu-node.git
 cd gpu-node
-cp .env.example .env
-# Edit .env — fill in DATABASE_URL, JWT_SECRET, Stripe keys, R2 credentials
+./setup.sh        # macOS / Linux
+# or
+.\setup.ps1       # Windows (PowerShell)
 ```
 
-### 2. Set up the Cloudflare Tunnel
+The setup script will:
+1. Install Ollama and pull a model
+2. Ask for your database URL (with instructions for free Supabase/Neon setup)
+3. Configure your node (electricity rate, name, optional services)
+4. Build and start the Docker services
+5. Start a Cloudflare tunnel and give you a public URL
+6. Tell you exactly how to deploy the frontend to Vercel
+
+Total time: ~10 minutes, no prior knowledge needed.
+
+## Manual setup
+
+If you prefer to set things up yourself:
+
+### 2. Install Ollama
+
+If you have a GPU, install Ollama natively for best performance:
 
 ```bash
-cloudflared tunnel login
-cloudflared tunnel create gpu-node
-cloudflared tunnel route dns gpu-node gpu.yourdomain.com
-# Copy the tunnel token into .env as TUNNEL_TOKEN
+# macOS
+brew install ollama && brew services start ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull your models
+ollama pull qwen2.5:14b
 ```
 
 ### 3. Start the server
@@ -64,19 +82,41 @@ docker compose up -d
 This starts:
 
 - `fastapi` on `localhost:8000`
-- `ollama` on `localhost:11434` (internal only)
 - `render-worker` polling the job queue
-- `cloudflared` proxying `gpu.yourdomain.com` → FastAPI
 
-### 4. Deploy the frontend
+Ollama runs natively on the host and is reached via `host.docker.internal:11434`.
 
-Connect the repo to Vercel. Set one environment variable in the Vercel dashboard:
+### 4. Expose your server
+
+**Quick start (no domain needed):**
+
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
+
+This gives you a free `https://xxx-yyy-zzz.trycloudflare.com` URL instantly. No account required. The URL changes each restart.
+
+**With your own domain:**
+
+```bash
+brew install cloudflared   # or: apt install cloudflared
+cloudflared tunnel login
+cloudflared tunnel create gpu-node
+cloudflared tunnel route dns gpu-node gpu.yourdomain.com
+cloudflared tunnel token gpu-node
+# Copy the token into .env as TUNNEL_TOKEN
+cloudflared tunnel run gpu-node
+```
+
+### 5. Deploy the frontend
+
+Connect the repo to Vercel. Set the root directory to `packages/frontend` and add one environment variable:
 
 ```
-NEXT_PUBLIC_API_URL=https://gpu.yourdomain.com
+VITE_API_URL=https://gpu.yourdomain.com
 ```
 
-Vercel auto-detects the `frontend/` directory and deploys on push.
+Or use the `trycloudflare.com` URL from step 4 if you don't have a domain.
 
 ### 5. Point Stripe webhooks
 

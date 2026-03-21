@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { admin } from '../lib/api';
+import { parseToken } from '../lib/auth';
 import type { AdminUserResponse, UserUpdateRequest } from '@shared/types/admin';
 import type { SystemStatsResponse } from '@shared/types/admin';
 
@@ -8,6 +9,7 @@ export function AdminPage() {
   const [users, setUsers] = useState<AdminUserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const currentUserId = parseToken()?.sub ?? '';
 
   function fetchData() {
     Promise.all([
@@ -52,6 +54,7 @@ export function AdminPage() {
               <UserRow
                 key={user.id}
                 user={user}
+                isSelf={user.id === currentUserId}
                 expanded={expandedUser === user.id}
                 onToggle={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                 onRefresh={fetchData}
@@ -75,11 +78,13 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function UserRow({
   user,
+  isSelf,
   expanded,
   onToggle,
   onRefresh,
 }: {
   user: AdminUserResponse;
+  isSelf: boolean;
   expanded: boolean;
   onToggle: () => void;
   onRefresh: () => void;
@@ -129,9 +134,10 @@ function UserRow({
           {user.status === 'pending' && (
             <button onClick={() => handleQuickAction('active')} className="text-green-400 hover:text-green-300 text-xs">Approve</button>
           )}
-          {user.status === 'active' && (
+          {user.status === 'active' && !isSelf && (
             <button onClick={() => handleQuickAction('suspended')} className="text-red-400 hover:text-red-300 text-xs">Suspend</button>
           )}
+          {isSelf && <span className="text-xs text-gray-500">You</span>}
           {user.status === 'suspended' && (
             <button onClick={() => handleQuickAction('active')} className="text-green-400 hover:text-green-300 text-xs">Reactivate</button>
           )}

@@ -62,7 +62,7 @@ async function requestFormData<T>(method: string, path: string, formData: FormDa
 
 function get<T>(path: string) { return request<T>('GET', path); }
 function post<T>(path: string, body?: unknown) { return request<T>('POST', path, body); }
-function put<T>(path: string, body?: unknown) { return request<T>('PUT', path, body); }
+function patch<T>(path: string, body?: unknown) { return request<T>('PATCH', path, body); }
 function del<T>(path: string) { return request<T>('DELETE', path); }
 
 // Auth
@@ -77,10 +77,10 @@ export const auth = {
 
 // Billing
 export const billing = {
-  getBalance: () => get<BalanceResponse>('/v1/billing/balance'),
-  getUsage: (page = 1) => get<UsageLogResponse[]>(`/v1/billing/usage?page=${page}`),
-  getInvoices: () => get<InvoiceResponse[]>('/v1/billing/invoices'),
-  createTopUp: (data: TopUpRequest) => post<TopUpResponse>('/v1/billing/top-up', data),
+  getBalance: () => get<BalanceResponse>('/v1/account/balance'),
+  getUsage: (limit = 50, offset = 0) => get<UsageLogResponse[]>(`/v1/account/usage?limit=${limit}&offset=${offset}`),
+  getInvoices: () => get<InvoiceResponse[]>('/v1/account/invoices'),
+  createTopUp: (data: TopUpRequest) => post<TopUpResponse>('/v1/account/topup', data),
 };
 
 // Inference
@@ -146,7 +146,7 @@ export const render = {
   },
   listJobs: () => get<RenderJobResponse[]>('/v1/render/jobs'),
   getJob: (id: string) => get<RenderJobResponse>(`/v1/render/jobs/${id}`),
-  cancelJob: (id: string) => post<void>(`/v1/render/jobs/${id}/cancel`),
+  cancelJob: (id: string) => del<void>(`/v1/render/jobs/${id}`),
 };
 
 // Admin
@@ -154,8 +154,8 @@ export const admin = {
   getStats: () => get<SystemStatsResponse>('/v1/admin/stats'),
   listUsers: () => get<AdminUserResponse[]>('/v1/admin/users'),
   getUser: (id: string) => get<AdminUserResponse>(`/v1/admin/users/${id}`),
-  updateUser: (id: string, data: UserUpdateRequest) => put<AdminUserResponse>(`/v1/admin/users/${id}`, data),
-  adjustBalance: (id: string, data: AdjustBalanceRequest) => post<void>(`/v1/admin/users/${id}/balance`, data),
+  updateUser: (id: string, data: UserUpdateRequest) => patch<AdminUserResponse>(`/v1/admin/users/${id}`, data),
+  adjustBalance: (id: string, data: AdjustBalanceRequest) => post<{ balance_nzd: number }>(`/v1/admin/users/${id}/adjust-balance`, data),
 };
 
 export { ApiError };
