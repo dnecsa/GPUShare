@@ -4,6 +4,7 @@ import { auth as authApi } from "../lib/api";
 import { setToken } from "../lib/auth";
 import { router } from "../router";
 import { branding } from "../theme.config";
+import { Button, Input } from "../components/ui";
 
 export function LoginPage() {
   const { trigger } = useWebHaptics();
@@ -58,58 +59,52 @@ export function LoginPage() {
           {isSignup && (
             <div>
               <label className="block text-sm text-gray-400 mb-1">Name</label>
-              <input
+              <Input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
           )}
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <input
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Password</label>
-            <input
+            <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg py-2.5 text-sm font-medium transition-colors"
-          >
+          <Button type="submit" disabled={loading} className="w-full" size="lg">
             {loading ? "Loading..." : isSignup ? "Sign Up" : "Sign In"}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => {
               setIsSignup(!isSignup);
               setError("");
             }}
-            className="w-full text-sm text-gray-400 hover:text-white transition-colors"
+            variant="ghost"
+            className="w-full"
           >
             {isSignup
               ? "Already have an account? Sign in"
               : "Don't have an account? Sign up"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

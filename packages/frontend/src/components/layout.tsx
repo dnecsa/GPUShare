@@ -10,6 +10,7 @@ import {
   status as statusConfig,
   balanceThresholds,
 } from "../theme.config";
+import { Button } from "./ui";
 
 type ServerStatus = "online" | "warming_up" | "degraded" | "offline";
 
@@ -241,7 +242,7 @@ export function Layout() {
   return (
     <div className="flex min-h-screen bg-gray-900 text-white overflow-x-hidden max-w-full">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-gray-950 flex-col border-r border-gray-800">
+      <aside className="hidden md:flex w-64 bg-gray-950 flex-col border-r border-gray-800 fixed left-0 top-0 bottom-0">
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold tracking-tight">
@@ -289,12 +290,14 @@ export function Layout() {
           {email && (
             <div className="text-xs text-gray-500 truncate">{email}</div>
           )}
-          <button
+          <Button
             onClick={handleLogout}
-            className="w-full text-left text-sm text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
           >
             Logout
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -365,19 +368,21 @@ export function Layout() {
               {email && (
                 <div className="text-sm text-gray-400 truncate">{email}</div>
               )}
-              <button
+              <Button
                 onClick={handleLogout}
-                className="w-full text-left text-sm text-red-400 hover:text-red-300 px-2 py-1.5 rounded transition-colors"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-red-400 hover:text-red-300"
               >
                 Logout
-              </button>
+              </Button>
             </div>
           </div>
         </>
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pt-14 md:pt-0 pb-16 md:pb-0 min-w-0 w-full">
+      <main className="flex-1 overflow-auto pt-14 md:pt-0 pb-16 md:pb-0 min-w-0 w-full md:ml-64">
         <Outlet />
       </main>
 

@@ -3,6 +3,15 @@ import { useWebHaptics } from "../lib/haptics";
 import { inference, getHealth } from "../lib/api";
 import type { ChatMessage } from "@shared/types/inference";
 import type { ModelInfo } from "@shared/types/inference";
+import {
+  Button,
+  Textarea,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../components/ui";
 
 interface Chat {
   id: string;
@@ -205,12 +214,9 @@ export function ChatPage() {
       {/* Desktop Sidebar -- Chat List */}
       <div className="hidden md:flex w-64 border-r border-gray-800 flex-col bg-gray-900/50">
         <div className="p-3">
-          <button
-            onClick={createNewChat}
-            className="w-full bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-          >
+          <Button onClick={createNewChat} className="w-full">
             + New Chat
-          </button>
+          </Button>
         </div>
         <div className="flex-1 overflow-auto">
           {chats.map((chat) => (
@@ -262,15 +268,15 @@ export function ChatPage() {
               </button>
             </div>
             <div className="p-3">
-              <button
+              <Button
                 onClick={() => {
                   createNewChat();
                   setChatListOpen(false);
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                className="w-full"
               >
                 + New Chat
-              </button>
+              </Button>
             </div>
             <div className="flex-1 overflow-auto">
               {chats.map((chat) => (
@@ -311,17 +317,18 @@ export function ChatPage() {
           <h2 className="text-lg font-semibold hidden md:block">
             {activeChat ? activeChat.title : "Chat"}
           </h2>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 max-w-full"
-          >
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.id} ({m.owned_by === "local" ? "Local" : "Cloud"})
-              </option>
-            ))}
-          </select>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="max-w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {models.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.id} ({m.owned_by === "local" ? "Local" : "Cloud"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {(() => {
             const m = models.find((m) => m.id === selectedModel);
             if (!m) return null;
@@ -373,21 +380,22 @@ export function ChatPage() {
 
         <div className="border-t border-gray-800 p-4 mb-16 md:mb-0">
           <div className="flex gap-2 max-w-4xl mx-auto w-full">
-            <textarea
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500"
+              className="flex-1 min-w-0 rounded-xl"
             />
-            <button
+            <Button
               onClick={handleSend}
               disabled={streaming || !input.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl px-4 md:px-6 py-3 text-sm font-medium transition-colors whitespace-nowrap"
+              className="rounded-xl px-4 md:px-6 whitespace-nowrap"
+              size="lg"
             >
               {streaming ? "..." : "Send"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

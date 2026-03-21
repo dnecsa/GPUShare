@@ -8,6 +8,9 @@ import type {
   UsageLogResponse,
   InvoiceResponse,
 } from "@shared/types/billing";
+import { Button, Input } from "../components/ui";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export function AccountPage() {
   const { trigger } = useWebHaptics();
@@ -159,19 +162,21 @@ export function AccountPage() {
           {balance.billing_type === "prepaid" && (
             <div className="flex flex-wrap items-center gap-2 mt-4">
               <span className="text-sm text-gray-400">$</span>
-              <input
+              <Input
                 type="number"
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
                 min={1}
-                className="w-24 bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                className="w-24"
               />
-              <button
+              <Button
                 onClick={handleTopUp}
-                className="bg-green-600 hover:bg-green-700 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+                variant="success"
+                size="sm"
+                className="whitespace-nowrap"
               >
                 Top Up
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -187,20 +192,21 @@ export function AccountPage() {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-400">$</span>
-            <input
+            <Input
               type="number"
               value={limitInput}
               onChange={(e) => setLimitInput(e.target.value)}
               step="1"
-              className="w-28 bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+              className="w-28"
             />
-            <button
+            <Button
               onClick={handleSaveLimit}
               disabled={limitSaving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+              size="sm"
+              className="whitespace-nowrap"
             >
               {limitSaving ? "Saving..." : "Update Limit"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -238,32 +244,111 @@ export function AccountPage() {
             <code className="text-sm text-green-200 break-all block">
               {revealedKey}
             </code>
-            <button
+            <Button
               onClick={() => {
                 navigator.clipboard.writeText(revealedKey);
                 trigger("nudge");
               }}
+              variant="ghost"
+              size="sm"
               className="mt-2 text-xs text-green-400 hover:text-green-300"
             >
-              Copy
-            </button>
+              Copy to clipboard
+            </Button>
+
+            {/* Integration Panels */}
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Claude Code Integration */}
+              <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src="/claude-logo.svg"
+                    alt="Claude"
+                    className="w-5 h-5"
+                  />
+                  <span className="text-sm font-medium">Claude Code</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">
+                  Configure Claude Code to use GPUShare as LLM gateway
+                </p>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => {
+                      const envConfig = `# Add to your shell profile (~/.zshrc or ~/.bashrc)
+export ANTHROPIC_BASE_URL="${API_URL}/v1"
+export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
+
+# Then restart Claude Code`;
+                      navigator.clipboard.writeText(envConfig);
+                      trigger("nudge");
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                  >
+                    Copy Environment Setup
+                  </Button>
+                  <a
+                    href="https://code.claude.com/docs/en/llm-gateway"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    View Setup Guide →
+                  </a>
+                </div>
+              </div>
+
+              {/* OpenClaw Integration */}
+              <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z"
+                      fill="#3B82F6"
+                    />
+                    <path
+                      d="M12 6L8 12H12L12 18L16 12H12L12 6Z"
+                      fill="#3B82F6"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium">OpenClaw</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">
+                  Configure OpenClaw to use GPUShare
+                </p>
+                <Button
+                  onClick={() => {
+                    const setupText = `API Key: ${revealedKey}\nBase URL: ${API_URL}/v1`;
+                    navigator.clipboard.writeText(setupText);
+                    trigger("nudge");
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                >
+                  Copy Setup Info
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         <div className="flex flex-wrap gap-2">
-          <input
+          <Input
             type="text"
             value={newKeyLabel}
             onChange={(e) => setNewKeyLabel(e.target.value)}
             placeholder="Key label (optional)"
-            className="flex-1 min-w-[200px] bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+            className="flex-1 min-w-[200px]"
           />
-          <button
+          <Button
             onClick={handleCreateKey}
-            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+            size="sm"
+            className="whitespace-nowrap"
           >
             Create Key
-          </button>
+          </Button>
         </div>
 
         {apiKeys.length > 0 ? (
@@ -299,12 +384,14 @@ export function AccountPage() {
                     </td>
                     <td className="py-2">
                       {!k.revoked_at && (
-                        <button
+                        <Button
                           onClick={() => handleRevokeKey(k.id)}
-                          className="text-red-400 hover:text-red-300 text-xs"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 text-xs h-auto py-1"
                         >
                           Revoke
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -359,23 +446,25 @@ export function AccountPage() {
               </table>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
-              <button
+              <Button
                 disabled={usageOffset <= 0}
                 onClick={() => setUsageOffset((o) => Math.max(0, o - 50))}
-                className="text-gray-400 hover:text-white disabled:opacity-30"
+                variant="ghost"
+                size="sm"
               >
-                Previous
-              </button>
+                ← Previous
+              </Button>
               <span className="text-gray-500">
                 Showing {usageOffset + 1}-{usageOffset + usage.length}
               </span>
-              <button
+              <Button
                 onClick={() => setUsageOffset((o) => o + 50)}
                 disabled={usage.length < 50}
-                className="text-gray-400 hover:text-white disabled:opacity-30"
+                variant="ghost"
+                size="sm"
               >
-                Next
-              </button>
+                Next →
+              </Button>
             </div>
           </>
         ) : (

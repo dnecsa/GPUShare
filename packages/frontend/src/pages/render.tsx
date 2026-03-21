@@ -3,8 +3,18 @@ import { useWebHaptics } from "../lib/haptics";
 import { render } from "../lib/api";
 import type {
   RenderJobResponse,
-  RenderJobCreateRequest,
+  RenderEngine,
+  RenderOutputFormat,
 } from "@shared/types/render";
+import {
+  Button,
+  Input,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../components/ui";
 
 const STATUS_STYLES: Record<string, string> = {
   queued: "bg-yellow-900/50 text-yellow-300 border-yellow-700",
@@ -21,12 +31,12 @@ export function RenderPage() {
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [engine, setEngine] = useState<"cycles" | "eevee">("cycles");
+  const [engine, setEngine] = useState<RenderEngine>("cycles");
   const [frameStart, setFrameStart] = useState("1");
   const [frameEnd, setFrameEnd] = useState("1");
   const [resX, setResX] = useState("1920");
   const [resY, setResY] = useState("1080");
-  const [outputFormat, setOutputFormat] = useState("PNG");
+  const [outputFormat, setOutputFormat] = useState<RenderOutputFormat>("PNG");
 
   function fetchJobs() {
     render
@@ -108,7 +118,7 @@ export function RenderPage() {
             <label className="block text-sm text-gray-400 mb-1">
               Blend File
             </label>
-            <input
+            <Input
               ref={fileRef}
               type="file"
               accept=".blend"
@@ -119,21 +129,25 @@ export function RenderPage() {
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Engine</label>
-            <select
+            <Select
               value={engine}
-              onChange={(e) => setEngine(e.target.value as "cycles" | "eevee")}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              onValueChange={(value) => setEngine(value as any)}
             >
-              <option value="cycles">Cycles</option>
-              <option value="eevee">Eevee</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cycles">Cycles</SelectItem>
+                <SelectItem value="eevee">Eevee</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">
               Frame Start
             </label>
-            <input
+            <Input
               type="number"
               value={frameStart}
               onChange={(e) => setFrameStart(e.target.value)}
@@ -146,7 +160,7 @@ export function RenderPage() {
             <label className="block text-sm text-gray-400 mb-1">
               Frame End
             </label>
-            <input
+            <Input
               type="number"
               value={frameEnd}
               onChange={(e) => setFrameEnd(e.target.value)}
@@ -159,7 +173,7 @@ export function RenderPage() {
             <label className="block text-sm text-gray-400 mb-1">
               Resolution X
             </label>
-            <input
+            <Input
               type="number"
               value={resX}
               onChange={(e) => setResX(e.target.value)}
@@ -172,7 +186,7 @@ export function RenderPage() {
             <label className="block text-sm text-gray-400 mb-1">
               Resolution Y
             </label>
-            <input
+            <Input
               type="number"
               value={resY}
               onChange={(e) => setResY(e.target.value)}
@@ -185,25 +199,27 @@ export function RenderPage() {
             <label className="block text-sm text-gray-400 mb-1">
               Output Format
             </label>
-            <select
+            <Select
               value={outputFormat}
-              onChange={(e) => setOutputFormat(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              onValueChange={(value) =>
+                setOutputFormat(value as RenderOutputFormat)
+              }
             >
-              <option value="PNG">PNG</option>
-              <option value="JPEG">JPEG</option>
-              <option value="OPEN_EXR">EXR</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PNG">PNG</SelectItem>
+                <SelectItem value="JPEG">JPEG</SelectItem>
+                <SelectItem value="OPEN_EXR">EXR</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg px-6 py-2.5 text-sm font-medium transition-colors"
-        >
-          {submitting ? "Uploading..." : "Submit Job"}
-        </button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Submitting..." : "Submit Job"}
+        </Button>
       </form>
 
       <div className="bg-gray-800 rounded-xl overflow-hidden">
@@ -267,12 +283,14 @@ export function RenderPage() {
                       )}
                       {(job.status === "queued" ||
                         job.status === "rendering") && (
-                        <button
+                        <Button
                           onClick={() => handleCancel(job.id)}
-                          className="text-red-400 hover:text-red-300 text-xs"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 text-xs h-auto py-1"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       )}
                       {job.error_message && (
                         <span
