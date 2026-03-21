@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useWebHaptics } from '../lib/haptics';
-import { inference, getHealth } from '../lib/api';
-import type { ChatMessage } from '@shared/types/inference';
-import type { ModelInfo } from '@shared/types/inference';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useWebHaptics } from "../lib/haptics";
+import { inference, getHealth } from "../lib/api";
+import type { ChatMessage } from "@shared/types/inference";
+import type { ModelInfo } from "@shared/types/inference";
 
 interface Chat {
   id: string;
@@ -12,14 +12,16 @@ interface Chat {
   createdAt: number;
 }
 
-const CHATS_KEY = 'gpu_node_chats';
-const ACTIVE_CHAT_KEY = 'gpu_node_active_chat';
+const CHATS_KEY = "gpu_node_chats";
+const ACTIVE_CHAT_KEY = "gpu_node_active_chat";
 
 function loadChats(): Chat[] {
   try {
     const raw = localStorage.getItem(CHATS_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveChats(chats: Chat[]) {
@@ -31,42 +33,52 @@ function generateId() {
 }
 
 function deriveTitle(messages: ChatMessage[]): string {
-  const first = messages.find(m => m.role === 'user');
-  if (!first) return 'New Chat';
+  const first = messages.find((m) => m.role === "user");
+  if (!first) return "New Chat";
   const text = first.content.slice(0, 40);
-  return text.length < first.content.length ? text + '...' : text;
+  return text.length < first.content.length ? text + "..." : text;
 }
 
 export function ChatPage() {
   const { trigger } = useWebHaptics();
   const [models, setModels] = useState<ModelInfo[]>([]);
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModel, setSelectedModel] = useState("");
   const [chats, setChats] = useState<Chat[]>(loadChats);
-  const [activeChatId, setActiveChatId] = useState<string | null>(
-    () => localStorage.getItem(ACTIVE_CHAT_KEY)
+  const [activeChatId, setActiveChatId] = useState<string | null>(() =>
+    localStorage.getItem(ACTIVE_CHAT_KEY),
   );
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [billingEnabled, setBillingEnabled] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
 
-  const activeChat = chats.find(c => c.id === activeChatId) ?? null;
+  const activeChat = chats.find((c) => c.id === activeChatId) ?? null;
   const messages = activeChat?.messages ?? [];
 
   useEffect(() => {
-    inference.listModels().then(res => {
-      setModels(res.data);
-      if (res.data.length > 0 && !selectedModel) setSelectedModel(res.data[0].id);
-    }).catch(() => {});
-    getHealth().then(h => setBillingEnabled(h.integrations.billing && h.integrations.stripe)).catch(() => {});
+    inference
+      .listModels()
+      .then((res) => {
+        setModels(res.data);
+        if (res.data.length > 0 && !selectedModel)
+          setSelectedModel(res.data[0].id);
+      })
+      .catch(() => {});
+    getHealth()
+      .then((h) =>
+        setBillingEnabled(h.integrations.billing && h.integrations.stripe),
+      )
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Persist chats to localStorage whenever they change
-  useEffect(() => { saveChats(chats); }, [chats]);
+  useEffect(() => {
+    saveChats(chats);
+  }, [chats]);
   useEffect(() => {
     if (activeChatId) localStorage.setItem(ACTIVE_CHAT_KEY, activeChatId);
     else localStorage.removeItem(ACTIVE_CHAT_KEY);
@@ -77,29 +89,32 @@ export function ChatPage() {
     if (activeChat && activeChat.model) setSelectedModel(activeChat.model);
   }, [activeChatId]);
 
-  const updateChat = useCallback((chatId: string, updater: (chat: Chat) => Chat) => {
-    setChats(prev => prev.map(c => c.id === chatId ? updater(c) : c));
-  }, []);
+  const updateChat = useCallback(
+    (chatId: string, updater: (chat: Chat) => Chat) => {
+      setChats((prev) => prev.map((c) => (c.id === chatId ? updater(c) : c)));
+    },
+    [],
+  );
 
   function createNewChat() {
-    trigger('nudge');
+    trigger("nudge");
     const chat: Chat = {
       id: generateId(),
-      title: 'New Chat',
+      title: "New Chat",
       model: selectedModel,
       messages: [],
       createdAt: Date.now(),
     };
-    setChats(prev => [chat, ...prev]);
+    setChats((prev) => [chat, ...prev]);
     setActiveChatId(chat.id);
-    setInput('');
+    setInput("");
   }
 
   function deleteChat(chatId: string) {
-    trigger('buzz');
-    setChats(prev => prev.filter(c => c.id !== chatId));
+    trigger("buzz");
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
     if (activeChatId === chatId) {
-      const remaining = chats.filter(c => c.id !== chatId);
+      const remaining = chats.filter((c) => c.id !== chatId);
       setActiveChatId(remaining.length > 0 ? remaining[0].id : null);
     }
   }
@@ -107,38 +122,41 @@ export function ChatPage() {
   async function handleSend() {
     const text = input.trim();
     if (!text || !selectedModel || streaming) return;
-    trigger('nudge');
+    trigger("nudge");
 
     // Create chat if none active
     let chatId = activeChatId;
     if (!chatId) {
       const chat: Chat = {
         id: generateId(),
-        title: 'New Chat',
+        title: "New Chat",
         model: selectedModel,
         messages: [],
         createdAt: Date.now(),
       };
-      setChats(prev => [chat, ...prev]);
+      setChats((prev) => [chat, ...prev]);
       setActiveChatId(chat.id);
       chatId = chat.id;
     }
 
-    const userMsg: ChatMessage = { role: 'user', content: text };
+    const userMsg: ChatMessage = { role: "user", content: text };
     const updatedMessages = [...messages, userMsg];
 
-    updateChat(chatId, c => ({
+    updateChat(chatId, (c) => ({
       ...c,
       model: selectedModel,
-      messages: [...updatedMessages, { role: 'assistant', content: '' }],
-      title: c.messages.length === 0 ? deriveTitle([...c.messages, userMsg]) : c.title,
+      messages: [...updatedMessages, { role: "assistant", content: "" }],
+      title:
+        c.messages.length === 0
+          ? deriveTitle([...c.messages, userMsg])
+          : c.title,
     }));
 
-    setInput('');
+    setInput("");
     setStreaming(true);
 
     try {
-      let fullContent = '';
+      let fullContent = "";
       const stream = inference.chatCompletionStream({
         model: selectedModel,
         messages: updatedMessages,
@@ -150,19 +168,23 @@ export function ChatPage() {
         if (delta) {
           fullContent += delta;
           const content = fullContent;
-          updateChat(chatId!, c => ({
+          updateChat(chatId!, (c) => ({
             ...c,
-            messages: [...updatedMessages, { role: 'assistant', content }],
+            messages: [...updatedMessages, { role: "assistant", content }],
           }));
         }
       }
-      trigger('success');
+      trigger("success");
     } catch (err) {
-      trigger('error');
-      const errorContent = err instanceof Error ? err.message : 'Error generating response';
-      updateChat(chatId!, c => ({
+      trigger("error");
+      const errorContent =
+        err instanceof Error ? err.message : "Error generating response";
+      updateChat(chatId!, (c) => ({
         ...c,
-        messages: [...updatedMessages, { role: 'assistant', content: `Error: ${errorContent}` }],
+        messages: [
+          ...updatedMessages,
+          { role: "assistant", content: `Error: ${errorContent}` },
+        ],
       }));
     } finally {
       setStreaming(false);
@@ -170,7 +192,7 @@ export function ChatPage() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -191,19 +213,22 @@ export function ChatPage() {
           </button>
         </div>
         <div className="flex-1 overflow-auto">
-          {chats.map(chat => (
+          {chats.map((chat) => (
             <div
               key={chat.id}
               onClick={() => setActiveChatId(chat.id)}
               className={`group flex items-center gap-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${
                 chat.id === activeChatId
-                  ? 'bg-gray-700/50 text-white'
-                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                  ? "bg-gray-700/50 text-white"
+                  : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
               }`}
             >
               <span className="flex-1 truncate">{chat.title}</span>
               <button
-                onClick={e => { e.stopPropagation(); deleteChat(chat.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteChat(chat.id);
+                }}
                 className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity text-xs"
                 title="Delete chat"
               >
@@ -212,7 +237,9 @@ export function ChatPage() {
             </div>
           ))}
           {chats.length === 0 && (
-            <div className="px-3 py-4 text-xs text-gray-600 text-center">No chats yet</div>
+            <div className="px-3 py-4 text-xs text-gray-600 text-center">
+              No chats yet
+            </div>
           )}
         </div>
       </div>
@@ -220,36 +247,52 @@ export function ChatPage() {
       {/* Mobile Chat List Slide-over */}
       {chatListOpen && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/60 md:hidden" onClick={() => setChatListOpen(false)} />
+          <div
+            className="fixed inset-0 z-50 bg-black/60 md:hidden"
+            onClick={() => setChatListOpen(false)}
+          />
           <div className="fixed inset-y-0 left-0 z-50 w-72 bg-gray-950 flex flex-col md:hidden">
             <div className="p-3 border-b border-gray-800 flex items-center justify-between">
               <span className="text-sm font-semibold">Chats</span>
-              <button onClick={() => setChatListOpen(false)} className="text-gray-400 hover:text-white text-xs">Close</button>
+              <button
+                onClick={() => setChatListOpen(false)}
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                Close
+              </button>
             </div>
             <div className="p-3">
               <button
-                onClick={() => { createNewChat(); setChatListOpen(false); }}
+                onClick={() => {
+                  createNewChat();
+                  setChatListOpen(false);
+                }}
                 className="w-full bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
               >
                 + New Chat
               </button>
             </div>
             <div className="flex-1 overflow-auto">
-              {chats.map(chat => (
+              {chats.map((chat) => (
                 <div
                   key={chat.id}
-                  onClick={() => { setActiveChatId(chat.id); setChatListOpen(false); }}
+                  onClick={() => {
+                    setActiveChatId(chat.id);
+                    setChatListOpen(false);
+                  }}
                   className={`flex items-center gap-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${
                     chat.id === activeChatId
-                      ? 'bg-gray-700/50 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                      ? "bg-gray-700/50 text-white"
+                      : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
                   }`}
                 >
                   <span className="flex-1 truncate">{chat.title}</span>
                 </div>
               ))}
               {chats.length === 0 && (
-                <div className="px-3 py-4 text-xs text-gray-600 text-center">No chats yet</div>
+                <div className="px-3 py-4 text-xs text-gray-600 text-center">
+                  No chats yet
+                </div>
               )}
             </div>
           </div>
@@ -257,8 +300,8 @@ export function ChatPage() {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <div className="border-b border-gray-800 p-4 flex items-center gap-4">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="border-b border-gray-800 p-4 flex flex-wrap items-center gap-2 md:gap-4">
           <button
             onClick={() => setChatListOpen(true)}
             className="md:hidden text-gray-400 hover:text-white text-sm font-medium"
@@ -266,52 +309,62 @@ export function ChatPage() {
             Chats
           </button>
           <h2 className="text-lg font-semibold hidden md:block">
-            {activeChat ? activeChat.title : 'Chat'}
+            {activeChat ? activeChat.title : "Chat"}
           </h2>
           <select
             value={selectedModel}
-            onChange={e => setSelectedModel(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 max-w-full"
           >
-            {models.map(m => (
+            {models.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.id} ({m.owned_by === 'local' ? 'Local' : 'Cloud'})
+                {m.id} ({m.owned_by === "local" ? "Local" : "Cloud"})
               </option>
             ))}
           </select>
           {(() => {
-            const m = models.find(m => m.id === selectedModel);
+            const m = models.find((m) => m.id === selectedModel);
             if (!m) return null;
             return (
-              <span className="flex items-center gap-2 text-xs">
-                <span className={`px-1.5 py-0.5 rounded ${m.owned_by === 'local' ? 'bg-green-900/50 text-green-400' : 'bg-purple-900/50 text-purple-400'}`}>
-                  {m.owned_by === 'local' ? 'Local GPU' : 'OpenRouter'}
+              <span className="flex items-center gap-2 text-xs flex-wrap">
+                <span
+                  className={`px-1.5 py-0.5 rounded whitespace-nowrap ${m.owned_by === "local" ? "bg-green-900/50 text-green-400" : "bg-purple-900/50 text-purple-400"}`}
+                >
+                  {m.owned_by === "local" ? "Local GPU" : "OpenRouter"}
                 </span>
-                {m.cost_per_million_tokens > 0 && (billingEnabled || m.owned_by !== 'local') && (
-                  <span className="text-gray-500">${m.cost_per_million_tokens.toFixed(2)}/M tokens</span>
-                )}
+                {m.cost_per_million_tokens > 0 &&
+                  (billingEnabled || m.owned_by !== "local") && (
+                    <span className="text-gray-500 whitespace-nowrap">
+                      ${m.cost_per_million_tokens.toFixed(2)}/M tokens
+                    </span>
+                  )}
               </span>
             );
           })()}
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-4">
+        <div className="flex-1 overflow-auto p-4 space-y-4 min-w-0">
           {messages.length === 0 && (
             <div className="flex items-center justify-center h-full text-gray-500">
               Start a conversation
             </div>
           )}
           {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-2xl rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-100'
-              }`}>
+            <div
+              key={i}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-2xl w-fit rounded-xl px-4 py-3 text-sm whitespace-pre-wrap break-words ${msg.role === "user" ? "max-w-[85%]" : "max-w-[85%]"} ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-800 text-gray-100"
+                }`}
+              >
                 {msg.content}
-                {msg.role === 'assistant' && msg.content === '' && streaming && (
-                  <span className="animate-pulse">...</span>
-                )}
+                {msg.role === "assistant" &&
+                  msg.content === "" &&
+                  streaming && <span className="animate-pulse">...</span>}
               </div>
             </div>
           ))}
@@ -319,21 +372,21 @@ export function ChatPage() {
         </div>
 
         <div className="border-t border-gray-800 p-4 mb-16 md:mb-0">
-          <div className="flex gap-2 max-w-4xl mx-auto">
+          <div className="flex gap-2 max-w-4xl mx-auto w-full">
             <textarea
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500"
+              className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500"
             />
             <button
               onClick={handleSend}
               disabled={streaming || !input.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl px-6 py-3 text-sm font-medium transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl px-4 md:px-6 py-3 text-sm font-medium transition-colors whitespace-nowrap"
             >
-              {streaming ? '...' : 'Send'}
+              {streaming ? "..." : "Send"}
             </button>
           </div>
         </div>
