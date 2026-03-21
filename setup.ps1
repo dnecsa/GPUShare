@@ -183,9 +183,11 @@ Write-Host "--- Configuration ---" -ForegroundColor White
 Write-Host ""
 
 # Generate a secure random JWT secret
-$jwtSecret = [Convert]::ToHexString(
-    [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
-).ToLower()
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$bytes = New-Object byte[] 32
+$rng.GetBytes($bytes)
+$jwtSecret = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
+
 Write-OK "Generated JWT_SECRET."
 
 $nodeName     = Read-Default "Node name"                          "My GPU Node"
