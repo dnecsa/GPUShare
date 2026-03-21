@@ -7,6 +7,26 @@ import type { AdminUserResponse, UserUpdateRequest, AdjustBalanceRequest, System
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export interface HealthResponse {
+  status: string;
+  node: string;
+  services: string[];
+  ollama: 'ready' | 'warming_up' | 'offline';
+  ollama_models: string[];
+  integrations: {
+    stripe: boolean;
+    r2: boolean;
+    resend: boolean;
+    billing: boolean;
+  };
+}
+
+export async function getHealth(): Promise<HealthResponse> {
+  const res = await fetch(`${API_URL}/health`);
+  if (!res.ok) throw new Error('Server unreachable');
+  return res.json();
+}
+
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

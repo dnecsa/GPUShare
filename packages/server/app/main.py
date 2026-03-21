@@ -47,4 +47,35 @@ app.include_router(admin.router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "node": settings.NODE_NAME}
+    import httpx
+
+    # Check Ollama
+    ollama_status = "offline"
+    ollama_models: list[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{settings.OLLAMA_HOST}/api/tags")
+            if resp.status_code == 200:
+                data = resp.json()
+                loaded = data.get("models", [])
+                ollama_models = [m["name"] for m in loaded]
+                ollama_status = "ready" if loaded else "warming_up"
+    except Exception:
+        ollama_status = "offline"
+
+    # Check configured integrations
+    integrations = {
+        "stripe": bool(settings.STRIPE_SECRET_KEY and settings.STRIPE_SECRET_KEY != "sk_test_placeholder"),
+        "r2": bool(settings.CLOUDFLARE_R2_ACCOUNT_ID and settings.CLOUDFLARE_R2_ACCOUNT_ID != "placeholder"),
+        "resend": bool(settings.RESEND_API_KEY and settings.RESEND_API_KEY != "re_placeholder"),
+        "billing": settings.BILLING_ENABLED,
+    }
+
+    return {
+        "status": "ok",
+        "node": settings.NODE_NAME,
+        "services": settings.services_list,
+        "ollama": ollama_status,
+        "ollama_models": ollama_models,
+        "integrations": integrations,
+    }

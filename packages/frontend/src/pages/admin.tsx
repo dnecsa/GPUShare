@@ -1,12 +1,69 @@
 import { useState, useEffect } from 'react';
-import { admin } from '../lib/api';
+import { admin, getHealth } from '../lib/api';
+import type { HealthResponse } from '../lib/api';
 import { parseToken } from '../lib/auth';
 import type { AdminUserResponse, UserUpdateRequest } from '@shared/types/admin';
 import type { SystemStatsResponse } from '@shared/types/admin';
 
+interface Integration {
+  key: string;
+  name: string;
+  configured: boolean;
+  description: string;
+  setupUrl: string;
+  setupLabel: string;
+}
+
+function getIntegrations(health: HealthResponse | null): Integration[] {
+  const i = health?.integrations;
+  return [
+    {
+      key: 'ollama',
+      name: 'Ollama',
+      configured: health?.ollama === 'ready',
+      description: 'AI inference backend. Serves LLM models locally via an OpenAI-compatible API.',
+      setupUrl: 'https://ollama.com/download',
+      setupLabel: 'Install Ollama',
+    },
+    {
+      key: 'stripe',
+      name: 'Stripe',
+      configured: i?.stripe ?? false,
+      description: 'Automated billing. Handles credit top-ups, monthly invoices, and payment collection.',
+      setupUrl: 'https://dashboard.stripe.com/apikeys',
+      setupLabel: 'Get API keys',
+    },
+    {
+      key: 'r2',
+      name: 'Cloudflare R2',
+      configured: i?.r2 ?? false,
+      description: 'File storage for 3D rendering. Stores .blend uploads and rendered output with signed download URLs.',
+      setupUrl: 'https://dash.cloudflare.com/?to=/:account/r2/api-tokens',
+      setupLabel: 'Create R2 token',
+    },
+    {
+      key: 'resend',
+      name: 'Resend',
+      configured: i?.resend ?? false,
+      description: 'Transactional email. Sends low-balance warnings, render completion notifications, and invoice receipts.',
+      setupUrl: 'https://resend.com/api-keys',
+      setupLabel: 'Get API key',
+    },
+    {
+      key: 'billing',
+      name: 'Billing',
+      configured: i?.billing ?? false,
+      description: 'Usage-based billing at electricity cost. Requires Stripe to be configured first.',
+      setupUrl: '',
+      setupLabel: 'Set BILLING_ENABLED=true in .env',
+    },
+  ];
+}
+
 export function AdminPage() {
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [users, setUsers] = useState<AdminUserResponse[]>([]);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const currentUserId = parseToken()?.sub ?? '';
@@ -15,6 +72,7 @@ export function AdminPage() {
     Promise.all([
       admin.getStats().then(setStats).catch(() => {}),
       admin.listUsers().then(setUsers).catch(() => {}),
+      getHealth().then(setHealth).catch(() => {}),
     ]).finally(() => setLoading(false));
   }
 
@@ -22,8 +80,10 @@ export function AdminPage() {
 
   if (loading) return <div className="p-6 text-gray-500">Loading...</div>;
 
+  const integrations = getIntegrations(health);
+
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-6 space-y-8 max-w-6xl">
       <h2 className="text-lg font-semibold">Admin Dashboard</h2>
 
       {/* Stats */}
@@ -37,32 +97,104 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-700 text-gray-400 text-left">
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Balance</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <UserRow
-                key={user.id}
-                user={user}
-                isSelf={user.id === currentUserId}
-                expanded={expandedUser === user.id}
-                onToggle={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
-                onRefresh={fetchData}
-              />
-            ))}
-          </tbody>
-        </table>
+      {/* Server Status */}
+      {health && (
+        <div className="bg-gray-800 rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-1">
+            <h3 className="text-sm font-semibold text-gray-200">Server</h3>
+            <span className="text-xs text-gray-500">{health.node}</span>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-gray-400">
+            <span>Services: {health.services.join(', ')}</span>
+            <span>Ollama: <OllamaStatus status={health.ollama} /></span>
+            {health.ollama_models.length > 0 && (
+              <span>Models: {health.ollama_models.join(', ')}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Integrations */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">Integrations</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {integrations.map(integ => (
+            <IntegrationTile key={integ.key} integration={integ} />
+          ))}
+        </div>
       </div>
+
+      {/* Users Table */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">Users</h3>
+        <div className="bg-gray-800 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-700 text-gray-400 text-left">
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Balance</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <UserRow
+                  key={user.id}
+                  user={user}
+                  isSelf={user.id === currentUserId}
+                  expanded={expandedUser === user.id}
+                  onToggle={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
+                  onRefresh={fetchData}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OllamaStatus({ status }: { status: string }) {
+  if (status === 'ready') return <span className="text-green-400">ready</span>;
+  if (status === 'warming_up') return <span className="text-yellow-400">warming up</span>;
+  return <span className="text-red-400">offline</span>;
+}
+
+function IntegrationTile({ integration }: { integration: Integration }) {
+  const { name, configured, description, setupUrl, setupLabel } = integration;
+  return (
+    <div className={`rounded-xl p-4 border ${configured ? 'bg-gray-800 border-gray-700' : 'bg-gray-800/50 border-dashed border-gray-700'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium">{name}</span>
+        {configured ? (
+          <span className="flex items-center gap-1.5 text-xs text-green-400">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400" />
+            Connected
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-gray-600" />
+            Not configured
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mb-3 leading-relaxed">{description}</p>
+      {!configured && setupUrl && (
+        <a
+          href={setupUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          {setupLabel} &rarr;
+        </a>
+      )}
+      {!configured && !setupUrl && (
+        <span className="text-xs text-gray-500">{setupLabel}</span>
+      )}
     </div>
   );
 }
@@ -127,7 +259,18 @@ function UserRow({
     <>
       <tr className="border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/30" onClick={onToggle}>
         <td className="px-4 py-3">{user.email}</td>
-        <td className="px-4 py-3 capitalize">{user.status}</td>
+        <td className="px-4 py-3">
+          <span className={`inline-flex items-center gap-1.5 text-xs capitalize ${
+            user.status === 'active' ? 'text-green-400' :
+            user.status === 'pending' ? 'text-yellow-400' : 'text-red-400'
+          }`}>
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+              user.status === 'active' ? 'bg-green-400' :
+              user.status === 'pending' ? 'bg-yellow-400' : 'bg-red-400'
+            }`} />
+            {user.status}
+          </span>
+        </td>
         <td className="px-4 py-3 capitalize">{user.role}</td>
         <td className="px-4 py-3">${user.balance_nzd.toFixed(2)}</td>
         <td className="px-4 py-3 space-x-2" onClick={e => e.stopPropagation()}>
