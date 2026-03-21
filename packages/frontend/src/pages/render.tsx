@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useWebHaptics } from "../lib/haptics";
 import { render } from "../lib/api";
-import type {
-  RenderJobResponse,
-  RenderEngine,
-  RenderOutputFormat,
-} from "@shared/types/render";
+import type { RenderJobResponse } from "@shared/types/render";
 import {
   Button,
   Input,
@@ -31,12 +27,12 @@ export function RenderPage() {
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [engine, setEngine] = useState<RenderEngine>("cycles");
+  const [engine, setEngine] = useState<string>("cycles");
   const [frameStart, setFrameStart] = useState("1");
   const [frameEnd, setFrameEnd] = useState("1");
   const [resX, setResX] = useState("1920");
   const [resY, setResY] = useState("1080");
-  const [outputFormat, setOutputFormat] = useState<RenderOutputFormat>("PNG");
+  const [outputFormat, setOutputFormat] = useState<string>("PNG");
 
   function fetchJobs() {
     render
@@ -68,7 +64,7 @@ export function RenderPage() {
     setSubmitting(true);
     setError("");
     try {
-      const params: RenderJobCreateRequest = {
+      const params = {
         engine,
         frame_start: Number(frameStart),
         frame_end: Number(frameEnd),
@@ -76,7 +72,7 @@ export function RenderPage() {
         resolution_y: Number(resY),
         output_format: outputFormat,
       };
-      await render.createJob(file, params);
+      await render.createJob(file, params as any);
       trigger("success");
       fetchJobs();
       if (fileRef.current) fileRef.current.value = "";
@@ -201,9 +197,7 @@ export function RenderPage() {
             </label>
             <Select
               value={outputFormat}
-              onValueChange={(value) =>
-                setOutputFormat(value as RenderOutputFormat)
-              }
+              onValueChange={(value) => setOutputFormat(value)}
             >
               <SelectTrigger>
                 <SelectValue />
