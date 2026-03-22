@@ -36,10 +36,21 @@ router = APIRouter(prefix="/v1/account", tags=["account"])
 # ---------------------------------------------------------------------------
 @router.get("/balance", response_model=BalanceResponse)
 async def account_balance(
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Return the caller's current credit balance and month-to-date usage."""
+    # Return demo data for guest users
+    if user is None:
+        return BalanceResponse(
+            balance_nzd=0.0,
+            this_month_usage_nzd=0.15,
+            hard_limit_nzd=0.0,
+            billing_type="prepaid",
+            total_topped_up_nzd=0.0,
+            total_used_nzd=0.15,
+        )
+    
     balance = await get_balance(db, user.id)
     month_usage = await get_this_month_usage(db, user.id)
 

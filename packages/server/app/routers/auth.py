@@ -63,8 +63,8 @@ async def get_current_user(
     x_api_key: str | None = Header(None),
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
-) -> User:
-    """Resolve the current user from a Bearer JWT *or* an X-API-Key header."""
+) -> User | None:
+    """Resolve the current user from a Bearer JWT *or* an X-API-Key header. Returns None for guest users."""
 
     # --- Helper: resolve user from an API key string ---
     async def _resolve_api_key(raw_key: str) -> User | None:
@@ -128,7 +128,13 @@ async def get_current_user(
         # Otherwise, treat as JWT
         try:
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = uuid.UUID(payload["sub"])
+            sub = payload["sub"]
+            
+            # Handle guest tokens
+            if sub == "guest":
+                return None  # Guest users don't have a User object
+            
+            user_id = uuid.UUID(sub)
         except (JWTError, KeyError, ValueError):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
@@ -198,6 +204,24 @@ async def signup(
     return user
 
 
+@router.post("/guest", response_model=TokenResponse)
+@limiter.limit("5/hour")
+async def guest_login(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+):
+    """Create a guest/demo token for exploring the app without signing up."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": "guest",
+        "role": "guest",
+        "iat": now,
+        "exp": now + timedelta(hours=24),  # Guest tokens expire in 24 hours
+    }
+    token = jwt.encode(payload, settings.JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return TokenResponse(access_token=token)
+
+
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def login(
@@ -228,8 +252,21 @@ async def login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def me(user: User = Depends(get_current_user)):
+async def me(user: User | None = Depends(get_current_user)):
     """Return the currently authenticated user's profile."""
+    if user is None:
+        # Return demo data for guest users
+        return UserResponse(
+            id="00000000-0000-0000-0000-000000000000",
+            email="guest@demo.gpushare.app",
+            name="Guest User",
+            status="active",
+            role="guest",
+            billing_type="prepaid",
+            hard_limit_nzd=0.0,
+            services_enabled=["inference"],
+            created_at=datetime.now(timezone.utc),
+        )
     return user
 
 

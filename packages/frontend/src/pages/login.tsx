@@ -14,6 +14,23 @@ export function LoginPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  async function handleGuestLogin() {
+    setError("");
+    setGuestLoading(true);
+    try {
+      const res = await authApi.guestLogin();
+      setToken(res.access_token);
+      trigger("success");
+      router.navigate({ to: "/chat" });
+    } catch (err) {
+      trigger("error");
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setGuestLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +55,9 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#F4F3EE] p-4 pb-20 md:pb-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#2D2B28]">{branding.appName}</h1>
+          <h1 className="text-3xl font-bold text-[#2D2B28]">
+            {branding.appName}
+          </h1>
           <p className="text-[#B1ADA1] mt-2">{branding.tagline}</p>
         </div>
 
@@ -78,7 +97,9 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-[#6F6B66] mb-1">Password</label>
+            <label className="block text-sm text-[#6F6B66] mb-1">
+              Password
+            </label>
             <Input
               type="password"
               value={password}
@@ -106,6 +127,20 @@ export function LoginPage() {
               : "Don't have an account? Sign up"}
           </Button>
         </form>
+
+        <div className="mt-4">
+          <Button
+            onClick={handleGuestLogin}
+            disabled={guestLoading}
+            variant="ghost"
+            className="w-full border border-[#E5E1DB]"
+          >
+            {guestLoading ? "Loading..." : "👀 Look around without signing in"}
+          </Button>
+          <p className="text-center text-xs text-[#B1ADA1] mt-2">
+            Explore with limited access • Free cloud models only
+          </p>
+        </div>
 
         <p className="text-center text-sm text-[#B1ADA1] mt-6">
           Want to create your own instance?{" "}

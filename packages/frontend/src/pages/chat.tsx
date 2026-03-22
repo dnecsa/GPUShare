@@ -17,6 +17,7 @@ import {
 } from "../components/ui";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { isGuest } from "../lib/auth";
 
 interface ActiveSkill {
   name: string;
@@ -112,12 +113,20 @@ export function ChatPage() {
   const activeSkills = activeChat?.activeSkills ?? [];
 
   useEffect(() => {
+    const userIsGuest = isGuest();
     inference
       .listModels()
       .then((res) => {
-        setModels(res.data);
-        if (res.data.length > 0 && !selectedModel)
-          setSelectedModel(res.data[0].id);
+        // Filter models for guest users: only free cloud models
+        const availableModels = userIsGuest
+          ? res.data.filter(
+              (m) => m.owned_by !== "local" && m.cost_per_million_tokens === 0,
+            )
+          : res.data;
+
+        setModels(availableModels);
+        if (availableModels.length > 0 && !selectedModel)
+          setSelectedModel(availableModels[0].id);
       })
       .catch(() => {});
     getHealth()

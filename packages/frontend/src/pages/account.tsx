@@ -11,6 +11,7 @@ import type {
 import { Button, Input, StatCard, RelativeTime } from "../components/ui";
 import { PaymentMethodSetup } from "../components/PaymentMethodSetup";
 import { fmtUsd } from "../lib/format";
+import { isGuest } from "../lib/auth";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -390,7 +391,7 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
             )}
           </div>
 
-          {balance.billing_type === "prepaid" && (
+          {balance.billing_type === "prepaid" && !isGuest() && (
             <div className="mt-4 space-y-2">
               <p className="text-xs text-[#6F6B66]">
                 Top up anytime to build credit. Your balance is used to pay for
@@ -415,6 +416,14 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
                   Top Up
                 </Button>
               </div>
+            </div>
+          )}
+          {isGuest() && (
+            <div className="mt-4 bg-[#FFF3E0] border border-[#FFE0B2] rounded-lg p-3">
+              <p className="text-sm text-[#E65100]">
+                👋 You're in <strong>demo mode</strong>. Sign up to unlock full
+                features including local GPU models, rendering, and more.
+              </p>
             </div>
           )}
         </div>

@@ -181,8 +181,9 @@ function del<T>(path: string) {
 
 // Auth
 export const auth = {
-  login: (data: LoginRequest) => post<TokenResponse>("/v1/auth/login", data),
   signup: (data: SignupRequest) => post<TokenResponse>("/v1/auth/signup", data),
+  login: (data: LoginRequest) => post<TokenResponse>("/v1/auth/login", data),
+  guestLogin: () => post<TokenResponse>("/v1/auth/guest", {}),
   getMe: () => get<UserResponse>("/v1/auth/me"),
   listApiKeys: () => get<ApiKeyResponse[]>("/v1/auth/api-keys"),
   createApiKey: (data: ApiKeyCreateRequest) =>
