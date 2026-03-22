@@ -59,3 +59,17 @@ class ApiKeyResponse(BaseModel):
     last_used: datetime | None
     created_at: datetime
     revoked_at: datetime | None
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    password: str = Field(..., min_length=8)

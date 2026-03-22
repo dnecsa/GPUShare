@@ -22,8 +22,11 @@ from app.schemas.auth import (
     ApiKeyCreateResponse,
     ApiKeyResponse,
     LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     SignupRequest,
     TokenResponse,
+    UpdateProfileRequest,
     UserResponse,
 )
 import resend
@@ -273,20 +276,20 @@ async def me(user: User | None = Depends(get_current_user)):
 
 @router.patch("/me", response_model=UserResponse)
 async def update_me(
-    body: dict,
+    body: UpdateProfileRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update the current user's profile (name, email)."""
-    if "name" in body:
-        user.name = body["name"]
-    if "email" in body:
+    if body.name is not None:
+        user.name = body.name
+    if body.email is not None:
         # Check if email is already taken
-        result = await db.execute(select(User).where(User.email == body["email"]))
+        result = await db.execute(select(User).where(User.email == body.email))
         existing = result.scalar_one_or_none()
         if existing and existing.id != user.id:
             raise HTTPException(status_code=400, detail="Email already in use")
-        user.email = body["email"]
+        user.email = body.email
     
     await db.commit()
     await db.refresh(user)
@@ -297,16 +300,12 @@ async def update_me(
 @limiter.limit("3/hour")
 async def request_password_reset(
     request: Request,
-    body: dict,
+    body: PasswordResetRequest,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
     """Request a password reset email."""
-    email = body.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Email is required")
-    
-    result = await db.execute(select(User).where(User.email == email))
+    result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     
     # Always return success to prevent email enumeration
@@ -340,22 +339,13 @@ async def request_password_reset(
 
 @router.post("/password-reset/confirm")
 async def confirm_password_reset(
-    body: dict,
+    body: PasswordResetConfirm,
     db: AsyncSession = Depends(get_db),
 ):
     """Confirm password reset with token and new password."""
-    token = body.get("token")
-    new_password = body.get("password")
-    
-    if not token or not new_password:
-        raise HTTPException(status_code=400, detail="Token and password are required")
-    
-    if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    
     result = await db.execute(
         select(User).where(
-            User.password_reset_token == token,
+            User.password_reset_token == body.token,
             User.password_reset_expires > datetime.now(timezone.utc),
         )
     )
@@ -365,7 +355,7 @@ async def confirm_password_reset(
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
     
     # Update password and clear reset token
-    user.password_hash = pwd_context.hash(new_password)
+    user.password_hash = pwd_context.hash(body.password)
     user.password_reset_token = None
     user.password_reset_expires = None
     await db.commit()
