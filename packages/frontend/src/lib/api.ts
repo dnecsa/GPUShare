@@ -185,6 +185,15 @@ export const auth = {
   login: (data: LoginRequest) => post<TokenResponse>("/v1/auth/login", data),
   guestLogin: () => post<TokenResponse>("/v1/auth/guest", {}),
   getMe: () => get<UserResponse>("/v1/auth/me"),
+  updateMe: (data: { name?: string; email?: string }) =>
+    patch<UserResponse>("/v1/auth/me", data),
+  requestPasswordReset: (email: string) =>
+    post<{ message: string }>("/v1/auth/password-reset/request", { email }),
+  confirmPasswordReset: (token: string, password: string) =>
+    post<{ message: string }>("/v1/auth/password-reset/confirm", {
+      token,
+      password,
+    }),
   listApiKeys: () => get<ApiKeyResponse[]>("/v1/auth/api-keys"),
   createApiKey: (data: ApiKeyCreateRequest) =>
     post<ApiKeyCreateResponse>("/v1/auth/api-keys", data),

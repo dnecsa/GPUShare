@@ -102,6 +102,11 @@ export function AccountPage() {
   const [guideTab, setGuideTab] = useState<
     "curl" | "python" | "claude-code" | "openclaw"
   >("curl");
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [resetRequesting, setResetRequesting] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
 
   const billingEnabled =
     (health?.integrations?.billing && health?.integrations?.stripe) ?? false;
@@ -170,6 +175,8 @@ export function AccountPage() {
         setHealth(h);
         setPaymentMethods(pm);
         setLimitInput(u.hard_limit_nzd.toString());
+        setEditName(u.name || "");
+        setEditEmail(u.email);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -227,6 +234,38 @@ export function AccountPage() {
       trigger("success");
     } catch {}
     setLimitSaving(false);
+  }
+
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    try {
+      const updated = await authApi.updateMe({
+        name: editName || undefined,
+        email: editEmail,
+      });
+      setUser(updated);
+      setEditName(updated.name || "");
+      setEditEmail(updated.email);
+      trigger("success");
+    } catch (err) {
+      trigger("error");
+    }
+    setProfileSaving(false);
+  }
+
+  async function handleRequestPasswordReset() {
+    if (!user?.email) return;
+    setResetRequesting(true);
+    setResetMessage("");
+    try {
+      const res = await authApi.requestPasswordReset(user.email);
+      setResetMessage(res.message);
+      trigger("success");
+    } catch (err) {
+      setResetMessage("Failed to send reset email");
+      trigger("error");
+    }
+    setResetRequesting(false);
   }
 
   function balanceColor(b: number): string {
@@ -576,23 +615,70 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
       )}
 
       {/* User Info */}
-      {user && (
+      {user && !isGuest() && (
         <div className="bg-white rounded-xl p-4 md:p-6 border border-[#E5E1DB]">
           <h3 className="font-medium mb-3">Profile</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-            <span className="text-[#6F6B66]">Email</span>
-            <span>{user.email}</span>
-            <span className="text-[#6F6B66]">Name</span>
-            <span>{user.name || "-"}</span>
-            <span className="text-[#6F6B66]">Status</span>
-            <span className="capitalize">{user.status}</span>
-            <span className="text-[#6F6B66]">Role</span>
-            <span className="capitalize">{user.role}</span>
-            <span className="text-[#6F6B66]">Services</span>
-            <span>{user.services_enabled.join(", ") || "None"}</span>
-            <span className="text-[#6F6B66]">Member since</span>
-            <span>{new Date(user.created_at).toLocaleDateString()}</span>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-[#6F6B66] mb-1">Name</label>
+              <Input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Your name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-[#6F6B66] mb-1">Email</label>
+              <Input
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="your@email.com"
+              />
+            </div>
+            <Button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              size="sm"
+            >
+              {profileSaving ? "Saving..." : "Save Changes"}
+            </Button>
+
+            <div className="pt-4 border-t border-[#E5E1DB]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <span className="text-[#6F6B66]">Status</span>
+                <span className="capitalize">{user.status}</span>
+                <span className="text-[#6F6B66]">Role</span>
+                <span className="capitalize">{user.role}</span>
+                <span className="text-[#6F6B66]">Services</span>
+                <span>{user.services_enabled.join(", ") || "None"}</span>
+                <span className="text-[#6F6B66]">Member since</span>
+                <span>{new Date(user.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Password Reset */}
+      {user && !isGuest() && (
+        <div className="bg-white rounded-xl p-4 md:p-6 border border-[#E5E1DB]">
+          <h3 className="font-medium mb-3">Password</h3>
+          <p className="text-sm text-[#6F6B66] mb-3">
+            Request a password reset link to be sent to your email address.
+          </p>
+          <Button
+            onClick={handleRequestPasswordReset}
+            disabled={resetRequesting}
+            variant="ghost"
+            size="sm"
+          >
+            {resetRequesting ? "Sending..." : "Send Password Reset Email"}
+          </Button>
+          {resetMessage && (
+            <p className="text-sm text-[#2E7D32] mt-2">{resetMessage}</p>
+          )}
         </div>
       )}
 

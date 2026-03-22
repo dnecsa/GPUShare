@@ -228,6 +228,7 @@ export function Layout() {
   const [balance, setBalance] = useState<number | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(() => {
     return localStorage.getItem("gpushare_sidebar_collapsed") === "true";
   });
@@ -406,18 +407,108 @@ export function Layout() {
       <div className="fixed top-0 left-0 right-0 z-40 md:hidden bg-white border-b border-[#E5E1DB]">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <button
-              onClick={() => {
-                trigger("nudge");
-                setSidebarOpen(true);
-              }}
-              className="text-[#6F6B66] hover:text-[#2D2B28] flex-shrink-0"
-            >
-              <MenuIcon className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold tracking-tight truncate">
-              {branding.appName}
-            </h1>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  trigger("nudge");
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }}
+                className="text-[#6F6B66] hover:text-[#2D2B28] flex-shrink-0 flex items-center gap-1"
+              >
+                <h1 className="text-lg font-bold tracking-tight">
+                  {branding.appName}
+                </h1>
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {mobileMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-[#E5E1DB] rounded-lg shadow-lg z-50 py-1">
+                    {navItems.map((item) => {
+                      const Icon = iconMap[item.label];
+                      const isActive = currentPath.startsWith(item.to);
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            trigger("nudge");
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-[#F4F3EE] text-[#2D2B28]"
+                              : "text-[#6F6B66] hover:text-[#2D2B28] hover:bg-[#F4F3EE]"
+                          }`}
+                        >
+                          <span className="relative">
+                            {Icon && <Icon className="w-5 h-5" />}
+                            {item.label === "Account" &&
+                              billingEnabled &&
+                              balance !== null &&
+                              balance < balanceThresholds.low && (
+                                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#C62828] opacity-75 animate-ping" />
+                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C62828]" />
+                                </span>
+                              )}
+                          </span>
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                    <div className="border-t border-[#E5E1DB] mt-1 pt-1">
+                      {billingEnabled && balance !== null && (
+                        <div className="px-4 py-2 text-sm">
+                          <span className="text-[#6F6B66]">
+                            {balance < 0 ? "Debt: " : "Balance: "}
+                          </span>
+                          <span
+                            className={
+                              balance > 10
+                                ? "text-[#2E7D32]"
+                                : balance > 5
+                                  ? "text-[#E65100]"
+                                  : balance > 0
+                                    ? "text-[#EF6C00]"
+                                    : "text-[#C62828]"
+                            }
+                          >
+                            {fmtUsd(balance)}
+                          </span>
+                        </div>
+                      )}
+                      {email && (
+                        <div className="px-4 py-1 text-xs text-[#6F6B66] truncate">
+                          {email}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-[#C62828] hover:bg-[#FFEBEE] transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex-shrink-0">
             <StatusPill status={status} health={health} />
@@ -425,8 +516,8 @@ export function Layout() {
         </div>
       </div>
 
-      {/* Mobile Slide-over Sidebar */}
-      {sidebarOpen && (
+      {/* Mobile Slide-over Sidebar - Removed, now using dropdown */}
+      {false && sidebarOpen && (
         <>
           <div
             className="fixed inset-0 z-50 bg-black/30 md:hidden"

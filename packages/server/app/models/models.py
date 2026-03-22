@@ -44,6 +44,8 @@ class User(Base):
         ARRAY(String),
         server_default=text("'{inference,render}'"),
     )
+    password_reset_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    password_reset_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=text("now()"),

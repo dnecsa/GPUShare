@@ -26,6 +26,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+import resend
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -268,6 +269,108 @@ async def me(user: User | None = Depends(get_current_user)):
             created_at=datetime.now(timezone.utc),
         )
     return user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: dict,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the current user's profile (name, email)."""
+    if "name" in body:
+        user.name = body["name"]
+    if "email" in body:
+        # Check if email is already taken
+        result = await db.execute(select(User).where(User.email == body["email"]))
+        existing = result.scalar_one_or_none()
+        if existing and existing.id != user.id:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        user.email = body["email"]
+    
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.post("/password-reset/request")
+@limiter.limit("3/hour")
+async def request_password_reset(
+    request: Request,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Request a password reset email."""
+    email = body.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"message": "If that email exists, a reset link has been sent"}
+    
+    # Generate reset token (valid for 1 hour)
+    reset_token = secrets.token_urlsafe(32)
+    user.password_reset_token = reset_token
+    user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    await db.commit()
+    
+    # Send email via Resend
+    if settings.RESEND_API_KEY:
+        resend.api_key = settings.RESEND_API_KEY
+        reset_url = f"{settings.NODE_NAME}/reset-password?token={reset_token}"
+        try:
+            resend.Emails.send({
+                "from": "noreply@gpushare.app",
+                "to": user.email,
+                "subject": "Reset your password",
+                "html": f"""<p>Click the link below to reset your password:</p>
+                <p><a href="{reset_url}">{reset_url}</a></p>
+                <p>This link expires in 1 hour.</p>""",
+            })
+        except Exception:
+            pass  # Silently fail to prevent information leakage
+    
+    return {"message": "If that email exists, a reset link has been sent"}
+
+
+@router.post("/password-reset/confirm")
+async def confirm_password_reset(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm password reset with token and new password."""
+    token = body.get("token")
+    new_password = body.get("password")
+    
+    if not token or not new_password:
+        raise HTTPException(status_code=400, detail="Token and password are required")
+    
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    
+    result = await db.execute(
+        select(User).where(
+            User.password_reset_token == token,
+            User.password_reset_expires > datetime.now(timezone.utc),
+        )
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Update password and clear reset token
+    user.password_hash = pwd_context.hash(new_password)
+    user.password_reset_token = None
+    user.password_reset_expires = None
+    await db.commit()
+    
+    return {"message": "Password reset successful"}
 
 
 @router.patch("/me/limit")

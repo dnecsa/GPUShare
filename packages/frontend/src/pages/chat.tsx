@@ -616,11 +616,26 @@ export function ChatPage() {
               <div className="text-sm font-medium truncate">
                 {activeChat ? activeChat.title : "New Chat"}
               </div>
-              {activeChat && (
-                <div className="text-[10px] text-[#B1ADA1] truncate">
-                  {shortModelName(activeChat.model)}
-                </div>
-              )}
+              {activeChat &&
+                (() => {
+                  const m = models.find(
+                    (model) => model.id === activeChat.model,
+                  );
+                  if (!m) return null;
+                  return (
+                    <div className="flex items-center gap-1 text-[10px] text-[#B1ADA1] truncate">
+                      <span>{shortModelName(activeChat.model)}</span>
+                      <span>
+                        {m.owned_by === "local" ? "Local GPU" : "Cloud"}
+                      </span>
+                      {m.cost_per_million_tokens > 0 && (
+                        <span>
+                          ${m.cost_per_million_tokens.toFixed(2)}/M tokens
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
             </div>
             <button
               onClick={createNewChat}
