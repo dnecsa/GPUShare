@@ -20,6 +20,8 @@
     "@tanstack/react-router-devtools": "^1.95.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {
