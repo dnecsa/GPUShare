@@ -114,7 +114,7 @@ async def create_chat_completion(
         output_tokens = count_tokens(assistant_content)
 
     # Calculate cost and record usage
-    cost, kwh = _calculate_cost(body.model, input_tokens, output_tokens, use_openrouter=bool(use_openrouter))
+    cost, kwh = await _calculate_cost(body.model, input_tokens, output_tokens, use_openrouter=bool(use_openrouter))
 
     usage_log = UsageLog(
         user_id=user.id,
@@ -157,16 +157,16 @@ async def create_chat_completion(
     )
 
 
-def _calculate_cost(
+async def _calculate_cost(
     model: str, input_tokens: int, output_tokens: int, use_openrouter: bool = False
 ) -> tuple[Decimal, Decimal]:
     """Calculate cost. For OpenRouter, use their pricing. For local, use electricity."""
     if use_openrouter:
-        # OpenRouter pricing is per-token, fetched at model list time
-        # For now, use a cached lookup. Cost is passed through at OpenRouter's rate.
+        # OpenRouter pricing is per-token. Fetches from API on cache miss
+        # so we never silently bill at $0.
         # We store kwh=0 for cloud models since no local energy is used.
         from app.lib.openrouter import _get_model_pricing
-        prompt_rate, completion_rate = _get_model_pricing(model)
+        prompt_rate, completion_rate = await _get_model_pricing(model)
         cost = (Decimal(str(prompt_rate)) * input_tokens) + (Decimal(str(completion_rate)) * output_tokens)
         return cost, Decimal("0")
     else:
@@ -190,6 +190,9 @@ async def _stream_response(
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
     created = int(time.time())
     collected_content = ""
+    # OpenRouter may report accurate token counts in the final streaming chunk
+    or_prompt_tokens: int | None = None
+    or_completion_tokens: int | None = None
 
     try:
         # --- Queue wait (local models only) ---
@@ -222,6 +225,11 @@ async def _stream_response(
             max_tokens=max_tokens,
         ):
             if use_openrouter:
+                # Capture usage from the final chunk (sent when stream_options.include_usage is set)
+                usage = chunk.get("usage")
+                if usage:
+                    or_prompt_tokens = usage.get("prompt_tokens")
+                    or_completion_tokens = usage.get("completion_tokens")
                 content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
                 done = chunk.get("choices", [{}])[0].get("finish_reason") is not None
             else:
@@ -250,8 +258,14 @@ async def _stream_response(
             yield f"data: {json.dumps(sse_chunk)}\n\n"
 
         # --- Record usage ---
-        output_tokens = count_tokens(collected_content)
-        cost, kwh = _calculate_cost(model, input_tokens, output_tokens, use_openrouter=use_openrouter)
+        # Prefer OpenRouter's reported token counts over local tiktoken estimates
+        if use_openrouter and or_prompt_tokens is not None:
+            input_tokens = or_prompt_tokens
+        if use_openrouter and or_completion_tokens is not None:
+            output_tokens = or_completion_tokens
+        else:
+            output_tokens = count_tokens(collected_content)
+        cost, kwh = await _calculate_cost(model, input_tokens, output_tokens, use_openrouter=use_openrouter)
 
         usage_log = UsageLog(
             user_id=user.id,

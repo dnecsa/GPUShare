@@ -63,6 +63,7 @@ async def chat_completion_stream(
         "model": model,
         "messages": messages,
         "stream": True,
+        "stream_options": {"include_usage": True},
     }
     if temperature is not None:
         payload["temperature"] = temperature
@@ -89,12 +90,30 @@ async def chat_completion_stream(
 _pricing_cache: dict[str, tuple[float, float]] = {}
 
 
-def _get_model_pricing(model: str) -> tuple[float, float]:
-    """Return (prompt_rate, completion_rate) per token for an OpenRouter model."""
+async def _get_model_pricing(model: str) -> tuple[float, float]:
+    """Return (prompt_rate, completion_rate) per token for an OpenRouter model.
+
+    Fetches pricing from the OpenRouter API on cache miss so that inference
+    requests are never silently billed at $0.
+    """
     if model in _pricing_cache:
         return _pricing_cache[model]
-    # Fallback: zero cost (will be populated by list_models)
-    return (0.0, 0.0)
+
+    # Cache miss — fetch all model pricing from OpenRouter
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{OPENROUTER_BASE}/models")
+            resp.raise_for_status()
+            for m in resp.json().get("data", []):
+                pricing = m.get("pricing", {})
+                _pricing_cache[m["id"]] = (
+                    float(pricing.get("prompt", "0")),
+                    float(pricing.get("completion", "0")),
+                )
+    except Exception:
+        pass
+
+    return _pricing_cache.get(model, (0.0, 0.0))
 
 
 async def list_models() -> list[dict]:
