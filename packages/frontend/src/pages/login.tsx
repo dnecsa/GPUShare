@@ -106,6 +106,18 @@ export function LoginPage() {
               : "Don't have an account? Sign up"}
           </Button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Want to create your own instance?{" "}
+          <a
+            href="https://github.com/Slaymish/GPUShare/blob/main/docs/SETUP.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            See the setup guide
+          </a>
+        </p>
       </div>
     </div>
   );
