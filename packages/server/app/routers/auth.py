@@ -6,9 +6,11 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +29,7 @@ from app.schemas.auth import (
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
+limiter = Limiter(key_func=get_remote_address)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 JWT_ALGORITHM = "HS256"
@@ -154,7 +157,9 @@ async def require_admin(user: User = Depends(get_current_user)) -> User:
 
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/hour")
 async def signup(
+    request: Request,
     body: SignupRequest,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -194,7 +199,9 @@ async def signup(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     body: LoginRequest,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
