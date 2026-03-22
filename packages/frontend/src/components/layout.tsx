@@ -447,7 +447,39 @@ export function Layout() {
                 <CloseIcon className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-3">
+            <nav className="flex-1 p-4 space-y-1">
+              {navItems.map((item) => {
+                const Icon = iconMap[item.label];
+                const isActive = currentPath.startsWith(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-[#F4F3EE] text-[#2D2B28]"
+                        : "text-[#6F6B66] hover:text-[#2D2B28] hover:bg-[#F4F3EE]"
+                    }`}
+                    onMouseDown={() => trigger("nudge")}
+                  >
+                    <span className="relative">
+                      {Icon && <Icon className="w-5 h-5" />}
+                      {item.label === "Account" &&
+                        billingEnabled &&
+                        balance !== null &&
+                        balance < balanceThresholds.low && (
+                          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-[#C62828] opacity-75 animate-ping" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C62828]" />
+                          </span>
+                        )}
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="p-4 border-t border-[#E5E1DB] space-y-3">
               {billingEnabled && balance !== null && (
                 <div className="text-sm">
                   <span className="text-[#6F6B66]">
@@ -486,47 +518,10 @@ export function Layout() {
 
       {/* Main Content */}
       <main
-        className={`flex-1 overflow-auto pt-14 md:pt-0 pb-16 md:pb-0 min-w-0 w-full transition-all duration-300 ${desktopSidebarCollapsed ? "md:ml-16" : "md:ml-64"}`}
+        className={`flex-1 overflow-auto pt-14 md:pt-0 min-w-0 w-full transition-all duration-300 ${desktopSidebarCollapsed ? "md:ml-16" : "md:ml-64"}`}
       >
         <Outlet />
       </main>
-
-      {/* Mobile Bottom Tab Bar */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-[#E5E1DB] max-w-full"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="flex">
-          {navItems.map((item) => {
-            const Icon = iconMap[item.label];
-            const isActive = currentPath.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex-1 flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
-                  isActive ? "text-[#C15F3C]" : "text-[#B1ADA1]"
-                }`}
-                onMouseDown={() => trigger("nudge")}
-              >
-                <span className="relative">
-                  {Icon && <Icon className="w-5 h-5" />}
-                  {item.label === "Account" &&
-                    billingEnabled &&
-                    balance !== null &&
-                    balance < balanceThresholds.low && (
-                      <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-[#C62828] opacity-75 animate-ping" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C62828]" />
-                      </span>
-                    )}
-                </span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }

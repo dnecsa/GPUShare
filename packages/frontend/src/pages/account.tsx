@@ -15,11 +15,7 @@ import { fmtUsd } from "../lib/format";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`bg-[#E5E1DB] rounded animate-pulse ${className}`}
-    />
-  );
+  return <div className={`bg-[#E5E1DB] rounded animate-pulse ${className}`} />;
 }
 
 function AccountSkeleton() {
@@ -102,7 +98,9 @@ export function AccountPage() {
     null,
   );
   const [dismissed, setDismissed] = useState(false);
-  const [guideTab, setGuideTab] = useState<'curl' | 'python' | 'claude-code' | 'openclaw'>('curl');
+  const [guideTab, setGuideTab] = useState<
+    "curl" | "python" | "claude-code" | "openclaw"
+  >("curl");
 
   const billingEnabled =
     (health?.integrations?.billing && health?.integrations?.stripe) ?? false;
@@ -292,8 +290,14 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
 
   // Donut chart percentages
   const totalCostForDonut = usageStats.inferenceCost + usageStats.renderCost;
-  const inferencePct = totalCostForDonut > 0 ? (usageStats.inferenceCost / totalCostForDonut) * 100 : 100;
-  const renderPct = totalCostForDonut > 0 ? (usageStats.renderCost / totalCostForDonut) * 100 : 0;
+  const inferencePct =
+    totalCostForDonut > 0
+      ? (usageStats.inferenceCost / totalCostForDonut) * 100
+      : 100;
+  const renderPct =
+    totalCostForDonut > 0
+      ? (usageStats.renderCost / totalCostForDonut) * 100
+      : 0;
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl pb-20 md:pb-0 w-full">
@@ -387,23 +391,30 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
           </div>
 
           {balance.billing_type === "prepaid" && (
-            <div className="flex flex-wrap items-center gap-2 mt-4">
-              <span className="text-sm text-[#6F6B66]">$</span>
-              <Input
-                type="number"
-                value={topUpAmount}
-                onChange={(e) => setTopUpAmount(e.target.value)}
-                min={1}
-                className="w-24"
-              />
-              <Button
-                onClick={handleTopUp}
-                variant="success"
-                size="sm"
-                className="whitespace-nowrap"
-              >
-                Top Up
-              </Button>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs text-[#6F6B66]">
+                Top up anytime to build credit. Your balance is used to pay for
+                inference and rendering as you go.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-[#6F6B66]">$</span>
+                <Input
+                  type="number"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  min={1}
+                  placeholder="Amount"
+                  className="w-24"
+                />
+                <Button
+                  onClick={handleTopUp}
+                  variant="success"
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  Top Up
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -421,9 +432,9 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
               </h4>
               <p className="text-sm text-[#6F6B66]">
                 Invoices are automatically generated on the{" "}
-                <strong className="text-[#2D2B28]">1st of each month</strong> for
-                the previous month's usage. You'll receive an email with your
-                invoice and payment instructions.
+                <strong className="text-[#2D2B28]">1st of each month</strong>{" "}
+                for the previous month's usage. You'll receive an email with
+                your invoice and payment instructions.
               </p>
             </div>
 
@@ -831,7 +842,11 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
           />
           <StatCard
             label="Render Jobs"
-            value={usageStats.renderCost > 0 ? Math.ceil(usageStats.renderCost / 0.01).toString() : "\u2014"}
+            value={
+              usageStats.renderCost > 0
+                ? Math.ceil(usageStats.renderCost / 0.01).toString()
+                : "\u2014"
+            }
             subLabel="Estimated from cost data"
           />
           <StatCard
@@ -858,14 +873,22 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#C15F3C]" />
                   <span className="text-[#6F6B66]">Inference</span>
-                  <span className="font-medium">{fmtUsd(usageStats.inferenceCost)}</span>
-                  <span className="text-[#B1ADA1]">({inferencePct.toFixed(1)}%)</span>
+                  <span className="font-medium">
+                    {fmtUsd(usageStats.inferenceCost)}
+                  </span>
+                  <span className="text-[#B1ADA1]">
+                    ({inferencePct.toFixed(1)}%)
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#5E35B1]" />
                   <span className="text-[#6F6B66]">Render</span>
-                  <span className="font-medium">{fmtUsd(usageStats.renderCost)}</span>
-                  <span className="text-[#B1ADA1]">({renderPct.toFixed(1)}%)</span>
+                  <span className="font-medium">
+                    {fmtUsd(usageStats.renderCost)}
+                  </span>
+                  <span className="text-[#B1ADA1]">
+                    ({renderPct.toFixed(1)}%)
+                  </span>
                 </div>
               </div>
             </div>
@@ -905,7 +928,9 @@ export ANTHROPIC_AUTH_TOKEN="${revealedKey}"
                       {billingEnabled && (
                         <td className="py-2">${u.cost_nzd.toFixed(4)}</td>
                       )}
-                      <td className="py-2 text-[#6F6B66]">{u.kwh.toFixed(4)}</td>
+                      <td className="py-2 text-[#6F6B66]">
+                        {u.kwh.toFixed(4)}
+                      </td>
                       <td className="py-2 text-[#6F6B66]">
                         {new Date(u.created_at).toLocaleString()}
                       </td>
