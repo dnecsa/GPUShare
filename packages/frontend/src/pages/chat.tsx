@@ -467,7 +467,7 @@ export function ChatPage() {
   const currentModel = models.find((m) => m.id === selectedModel);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full md:flex-row flex-col">
       {/* Desktop Sidebar -- Chat List */}
       <div className="hidden md:flex w-64 border-r border-[#E5E1DB] flex-col bg-white">
         <div className="p-3">
@@ -585,14 +585,50 @@ export function ChatPage() {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-[#E5E1DB] p-4 flex flex-wrap items-center gap-2 md:gap-4 bg-white">
-          <button
-            onClick={() => setChatListOpen(true)}
-            className="md:hidden text-[#6F6B66] hover:text-[#2D2B28] text-sm font-medium"
-          >
-            Chats
-          </button>
+      <div className="flex-1 flex flex-col min-w-0 md:relative">
+        <div className="border-b border-[#E5E1DB] p-4 flex flex-wrap items-center gap-2 md:gap-4 bg-white shrink-0">
+          <div className="md:hidden flex items-center gap-2 flex-1 min-w-0">
+            <button
+              onClick={() => setChatListOpen(true)}
+              className="text-[#6F6B66] hover:text-[#2D2B28] shrink-0"
+              title="Chat history"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">
+                {activeChat ? activeChat.title : "New Chat"}
+              </div>
+              {activeChat && (
+                <div className="text-[10px] text-[#B1ADA1] truncate">
+                  {shortModelName(activeChat.model)}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={createNewChat}
+              className="text-[#6F6B66] hover:text-[#2D2B28] shrink-0"
+              title="New chat"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
           <h2 className="text-lg font-semibold hidden md:block">
             {activeChat ? activeChat.title : "Chat"}
           </h2>
@@ -632,7 +668,7 @@ export function ChatPage() {
           })()}
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-4 min-w-0 bg-[#F4F3EE]">
+        <div className="flex-1 overflow-auto p-4 space-y-4 min-w-0 bg-[#F4F3EE] md:pb-4 pb-[180px]">
           {/* Empty state with quick-start chips */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-6">
@@ -755,7 +791,7 @@ export function ChatPage() {
           <div ref={messagesEnd} />
         </div>
 
-        <div className="border-t border-[#E5E1DB] p-4 mb-16 md:mb-0 bg-white">
+        <div className="border-t border-[#E5E1DB] p-4 bg-white shrink-0 md:relative fixed bottom-0 left-0 right-0 md:left-auto md:right-auto z-30">
           <div className="max-w-4xl mx-auto w-full space-y-2">
             {/* Active skills pills */}
             {activeSkills.length > 0 && (
