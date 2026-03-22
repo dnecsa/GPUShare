@@ -41,6 +41,12 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+function shortModelName(model: string): string {
+  // Strip common prefixes and suffixes to get a compact label
+  const parts = model.split("/");
+  return parts[parts.length - 1];
+}
+
 function deriveTitle(messages: ChatMessage[]): string {
   const first = messages.find((m) => m.role === "user");
   if (!first) return "New Chat";
@@ -230,6 +236,11 @@ export function ChatPage() {
               }`}
             >
               <span className="flex-1 truncate">{chat.title}</span>
+              {chat.model && (
+                <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-gray-700 text-gray-400 text-[10px] leading-tight">
+                  {shortModelName(chat.model)}
+                </span>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -293,6 +304,11 @@ export function ChatPage() {
                   }`}
                 >
                   <span className="flex-1 truncate">{chat.title}</span>
+                  {chat.model && (
+                    <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-gray-700 text-gray-400 text-[10px] leading-tight">
+                      {shortModelName(chat.model)}
+                    </span>
+                  )}
                 </div>
               ))}
               {chats.length === 0 && (
