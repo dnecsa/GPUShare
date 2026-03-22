@@ -1,7 +1,5 @@
 """Authentication router — signup, login, JWT, and API key management."""
 
-from __future__ import annotations
-
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
